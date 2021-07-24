@@ -18,7 +18,7 @@ with open("secret.json", "r") as secret:
 
 def start_command(update: Update, context: CallbackContext):
     bot = Bot(token=token)
-    bot.send_message(channel_id, text='Hi!')
+    update.message.reply_text("Hey there!")
 
 
 def morning(context: CallbackContext):
