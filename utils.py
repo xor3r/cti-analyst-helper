@@ -1,6 +1,9 @@
 import csv
 import feedparser
 import datetime
+import dateutil.parser
+
+from dateutil.tz import gettz
 
 
 def read_feed(link, tags=True, summary=True, published=True, updated=False):
@@ -16,10 +19,10 @@ def read_feed(link, tags=True, summary=True, published=True, updated=False):
         feed_data["tags"] = format_tags(feed.entries[0]["tags"])
     else:
         feed_data["tags"] = None
-    today = datetime.datetime.today()
-    today_format_1 = today.strftime("%d %b %Y")
-    today_format_2 = today.strftime("%Y-%m-%d")
-    if today_format_1 in feed_data["time"] or today_format_2 in feed_data["time"]:
+    to_time = datetime.datetime.timestamp(datetime.datetime.now())
+    from_time = to_time - 86400
+    feed_time = datetime.datetime.timestamp(dateutil.parser.parse(feed_data["time"], tzinfos={"PDT": gettz("America/Los_Angeles")}))
+    if from_time < feed_time < to_time:
         return feed_data
     else:
         return None
