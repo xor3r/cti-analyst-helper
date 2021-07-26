@@ -8,22 +8,22 @@ from dateutil.tz import gettz
 
 def read_feed(link, tags=True, summary=True, published=True, updated=False):
     feed = feedparser.parse(link)
-    feed_data = dict()
-    feed_data["link"] = feed.entries[0]["link"]
-    feed_data["title"] = feed.entries[0]["title"]
-    if updated:
-        feed_data["time"] = feed.entries[0]["updated"]
-    elif published:
-        feed_data["time"] = feed.entries[0]["published"]
-    if tags:
-        feed_data["tags"] = format_tags(feed.entries[0]["tags"])
-    else:
-        feed_data["tags"] = None
+    events = set()
     to_time = datetime.datetime.timestamp(datetime.datetime.now())
     from_time = to_time - 86400
-    feed_time = datetime.datetime.timestamp(dateutil.parser.parse(feed_data["time"], tzinfos={"PDT": gettz("America/Los_Angeles")}))
-    if from_time < feed_time < to_time:
-        return feed_data
+    for event in feed.entries:
+        if updated:
+            event["time"] = event["updated"]
+        elif published:
+            event["time"] = event["published"]
+        event_time = datetime.datetime.timestamp(dateutil.parser.parse(event["time"], tzinfos={"PDT": gettz("America/Los_Angeles")}))
+        if from_time < event_time < to_time:
+            events.add(event)
+            if tags:
+                event["tags"] = format_tags(event["tags"])
+            else:
+                event["tags"] = None
+        return events
     else:
         return None
 
@@ -40,10 +40,11 @@ def fetch_from_feeds(feeds_dict):
         if feed["source"].startswith("#"):
             continue
         else:
-            post_raw = read_feed(feed["source"], **{key: eval(value) for key, value in feed.items() if (key != "source" and key != "title")})
-            if post_raw is not None:
-                post_raw["org"] = feed["title"]
-                post_data.append(post_raw)
+            events = read_feed(feed["source"], **{key: eval(value) for key, value in feed.items() if (key != "source" and key != "title")})
+            if events is not None:
+                for event in events:
+                    event["org"] = feed["title"]
+                    post_data.append(event)
     return post_data
 
 
@@ -57,10 +58,9 @@ def create_post(events):
         return None
     text = ""
     for event in events:
-        text += event["title"] + ' | <a href="{0}">{1}</a>'.format(event["link"], event["org"])
-        # No need of tags for now
-        # text += ("\n" + event["tags"] if event["tags"] else "")
-        text += "\n\n"
+        if event["title"] not in text:
+            text += event["title"] + ' | <a href="{0}">{1}</a>'.format(event["link"], event["org"])
+            text += "\n\n"
     return text
 
 
