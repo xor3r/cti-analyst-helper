@@ -56,7 +56,8 @@ def format_tags(tags_list):
 def create_post(events):
     if not events:
         return None
-    text = ""
+    today_date = datetime.datetime.today().strftime('%Y-%m-%d')
+    text = "<b>" + today_date + "</b>\n\n"
     for event in events:
         if event["title"] not in text:
             text += event["title"] + ' | <a href="{0}">{1}</a>'.format(event["link"], event["org"])
